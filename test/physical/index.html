@@ -4,8 +4,6 @@
         <meta charset="iso-8859-1">
         <title>Testing mousewheel plugin</title>
 
-<<<<<<< HEAD:test/index.html
-=======
         <script>
             (function(){
                     var verMatch = /v=([\w\.]+)/.exec( location.search ),
@@ -20,7 +18,6 @@
         </script>
         <script src="../../jquery.mousewheel.js"></script>
 
->>>>>>> Add examples directory and beginings of the unit tests:test/physical/index.html
         <style>
             html {
                 font: 13px Arial, sans-serif;
@@ -129,10 +126,15 @@
                 $('#userAgent').html(navigator.userAgent);
                 $('#jqueryVersion').html($.fn.jquery);
 
-                var loghandle = function(event) {
-                    var o = '', id = event.currentTarget.id;
+                var loghandle = function(event, delta) {
+                    var o = '', id = event.currentTarget.id || event.currentTarget.nodeName;
 
                     o = '#' + id + ':';
+
+                    if (delta > 0)
+                        o += ' up (' + delta + ')';
+                    else if (delta < 0)
+                        o += ' down (' + delta + ')';
 
                     if (event.deltaY > 0)
                         o += ' north (' + event.deltaY + ')';
@@ -148,6 +150,11 @@
 
                     log( o );
                 };
+
+                $(document)
+                    .mousewheel(function(event, delta) {
+                        loghandle(event, delta);
+                    });
 
                 $('#test1')
                     .on('mousewheel', function(event) {

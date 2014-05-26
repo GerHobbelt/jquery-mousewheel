@@ -6,7 +6,7 @@ module.exports = function(grunt) {
             options: {
                 jshintrc: '.jshintrc'
             },
-            all: ['*.js']
+            all: ['jquery.mousewheel.js']
         },
         uglify: {
             options: {
@@ -17,7 +17,7 @@ module.exports = function(grunt) {
             },
             build: {
                 src: 'jquery.mousewheel.js',
-                dest: 'build/jquery.mousewheel.min.js'
+                dest: 'jquery.mousewheel.min.js'
             }
         },
         connect: {
