@@ -1,7 +1,7 @@
 /*! Copyright (c) 2013 Brandon Aaron (http://brandon.aaron.sh)
  * Licensed under the MIT License (LICENSE.txt).
  *
- * Version: 3.1.8
+ * Version: 3.1.9
  *
  * Requires: jQuery 1.7+
  */
@@ -23,7 +23,7 @@
         toBind = ( 'onwheel' in document || document.documentMode >= 9 ) ?
                     ['wheel'] : ['mousewheel', 'DomMouseScroll', 'MozMousePixelScroll'],
         slice  = Array.prototype.slice,
-        oldMode, nullLowestDeltaTimeout, lowestDelta;
+        nullLowestDeltaTimeout, lowestDelta;
 
     if ( $.event.fixHooks ) {
         for ( var i = toFix.length; i; ) {
@@ -32,7 +32,7 @@
     }
 
     var special = $.event.special.mousewheel = {
-        version: '3.1.8',
+        version: '3.1.9',
 
         setup: function() {
             if ( this.addEventListener ) {
@@ -65,10 +65,14 @@
             return $(elem).height();
         },
 
+        settings: {
+            adjustOldDeltas: true
+        },
+
         trigger: function(data, event) {
           if (!event) {
             event = data;
-            data = null
+            data = null;
           }
 
           handler.call(this, event);
@@ -77,10 +81,23 @@
         }
     };
 
+
+    $.fn.extend({
+        mousewheel: function(fn) {
+            return fn ? this.bind('mousewheel', fn) : this.trigger('mousewheel');
+        },
+
+        unmousewheel: function(fn) {
+            return this.unbind('mousewheel', fn);
+        }
+    });
+
+
     function handler(event) {
         // might be trigged event, so check for the originalEvent first
         var orgEvent   = event ? event.originalEvent || event : window.event,
             args       = slice.call(arguments, 1),
+            delta      = 0,
             deltaX     = 0,
             deltaY     = 0,
             absDelta   = 0;
@@ -99,9 +116,18 @@
             deltaY = 0;
         }
 
+        // Set delta to be deltaY or deltaX if deltaY is 0 for backwards compatabilitiy
+        delta = deltaY === 0 ? deltaX : deltaY;
+
         // New school wheel delta (wheel event)
-        if ( 'deltaY' in orgEvent ) { deltaY = orgEvent.deltaY * -1; }
-        if ( 'deltaX' in orgEvent ) { deltaX = orgEvent.deltaX; }
+        if ( 'deltaY' in orgEvent ) {
+            deltaY = orgEvent.deltaY * -1;
+            delta  = deltaY;
+        }
+        if ( 'deltaX' in orgEvent ) {
+            deltaX = orgEvent.deltaX;
+            if ( deltaY === 0 ) { delta  = deltaX * -1; }
+        }
 
         // No change actually happened, no reason to go any further
         if ( deltaY === 0 && deltaX === 0 ) { return; }
@@ -129,18 +155,14 @@
         if ( !lowestDelta || absDelta < lowestDelta ) {
             lowestDelta = absDelta;
 
-            // Assuming that if the lowestDelta is 120, then that the browser
-            // is treating this as an older mouse wheel event.
-            // We'll divide it by 40 to try and get a more usable deltaFactor.
-            if ( lowestDelta === 120 ) {
-                oldMode = true;
+            // Adjust older deltas if necessary
+            if ( shouldAdjustOldDeltas(orgEvent, absDelta) ) {
                 lowestDelta /= 40;
             }
         }
 
-        // When in oldMode the delta is based on 120.
-        // Dividing by 40 to try and get a more usable deltaFactor.
-        if ( oldMode ) {
+        // Adjust older deltas if necessary
+        if ( shouldAdjustOldDeltas(orgEvent, absDelta) ) {
             // Divide all the things by 40!
             delta  /= 40;
             deltaX /= 40;
@@ -148,6 +170,7 @@
         }
 
         // Get a whole, normalized value for the deltas
+        delta  = Math[ delta  >= 1 ? 'floor' : 'ceil' ](delta  / lowestDelta);
         deltaX = Math[ deltaX >= 1 ? 'floor' : 'ceil' ](deltaX / lowestDelta);
         deltaY = Math[ deltaY >= 1 ? 'floor' : 'ceil' ](deltaY / lowestDelta);
 
@@ -160,8 +183,8 @@
         // properties with normalized deltas.
         event.deltaMode = 0;
 
-        // Add event to the front of the arguments
-        args.unshift(event);
+        // Add event and delta to the front of the arguments
+        args.unshift(event, delta, deltaX, deltaY);
 
         // Clearout lowestDelta after sometime to better
         // handle multiple device types that give different
@@ -175,7 +198,17 @@
 
     function nullLowestDelta() {
         lowestDelta = null;
-        oldMode = null;
+    }
+
+    function shouldAdjustOldDeltas(orgEvent, absDelta) {
+        // If this is an older event and the delta is divisable by 120,
+        // then we are assuming that the browser is treating this as an
+        // older mouse wheel event and that we should divide the deltas
+        // by 40 to try and get a more usable deltaFactor.
+        // Side note, this actually impacts the reported scroll distance
+        // in older browsers and can cause scrolling to be slower than native.
+        // Turn this off by setting $.event.special.mousewheel.settings.adjustOldDeltas to false.
+        return special.settings.adjustOldDeltas && orgEvent.type === 'mousewheel' && absDelta % 120 === 0;
     }
 
 }));
