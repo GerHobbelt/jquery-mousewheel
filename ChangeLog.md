@@ -9,6 +9,10 @@
 * Add examples directory
 * Add proper unit tests in addition to tried and true physical test
 
+## 3.1.11
+
+* Fix version number for package managers...
+
 ## 3.1.10
 
 * Fix issue with calculating line height when using older versions of jQuery
