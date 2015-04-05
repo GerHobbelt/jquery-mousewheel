@@ -9,6 +9,10 @@
 * Add examples directory
 * Add proper unit tests in addition to tried and true physical test
 
+## 3.1.12
+
+* Fix possible 0 value for line height when in delta mode 1
+
 ## 3.1.11
 
 * Fix version number for package managers...
