@@ -12,7 +12,7 @@
         define(['jquery'], factory);
     } else if (typeof exports === 'object') {
         // Node/CommonJS style for Browserify
-        module.exports = factory;
+        module.exports = factory(require('jquery'));
     } else {
         // Browser globals
         factory(jQuery);
@@ -76,12 +76,24 @@
         settings: {
             adjustOldDeltas: true, // see shouldAdjustOldDeltas() below
             normalizeOffset: true  // calls getBoundingClientRect for each event
+        },
+
+        trigger: function(data, event) {
+          if (!event) {
+            event = data;
+            data = null;
+          }
+
+          handler.call(this, event);
+
+          return false;
         }
     };
 
+
     $.fn.extend({
-        mousewheel: function(fn) {
-            return fn ? this.bind('mousewheel', fn) : this.trigger('mousewheel');
+        mousewheel: function (data, fn) {
+            return arguments.length > 0 ? this.bind('mousewheel', data, fn) : this.trigger('mousewheel');
         },
 
         unmousewheel: function(fn) {
@@ -91,7 +103,8 @@
 
 
     function handler(event) {
-        var orgEvent   = event || window.event,
+        // might be trigged event, so check for the originalEvent first
+        var orgEvent   = event ? event.originalEvent || event : window.event,
             args       = slice.call(arguments, 1),
             delta      = 0,
             deltaX     = 0,
